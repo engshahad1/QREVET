@@ -50,6 +50,7 @@
 
   </div>
 
+  <!-- Fake Login Logic for Vercel -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const loginButton = document.getElementById("loginButton");
@@ -57,24 +58,14 @@
       const passwordInput = document.getElementById("password");
       const errorMessage = document.getElementById("errorMsg");
 
-      loginButton.addEventListener("click", async () => {
+      loginButton.addEventListener("click", () => {
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
 
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          if (data.role === 'vet') {
-            window.location.href = "/vet-dashboard.html";
-          } else if (data.role === 'lab') {
-            window.location.href = "/lab-dashboard.html";
-          }
+        if (username === "vet" && password === "vet123") {
+          window.location.href = "vet-dashboard.html";
+        } else if (username === "lab" && password === "lab123") {
+          window.location.href = "lab-dashboard.html";
         } else {
           errorMessage.classList.remove("hidden");
           errorMessage.textContent = "⚠️ اسم المستخدم أو كلمة المرور غير صحيحة";
