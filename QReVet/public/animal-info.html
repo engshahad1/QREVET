@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>بطاقة الحيوان</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen p-6">
+  <div class="max-w-2xl mx-auto bg-zinc-900 rounded-2xl shadow-xl p-6 border border-orange-500">
+    <h1 class="text-3xl font-bold text-orange-400 text-center mb-6">بطاقة الحيوان</h1>
+
+    <div id="animalImageContainer" class="flex justify-center mb-4"></div>
+    <canvas id="qrcode" class="mx-auto mb-4"></canvas>
+
+    <div id="animalDetails" class="space-y-3 text-base leading-loose px-4"></div>
+
+    <div id="pdfBtnContainer" class="mt-8 text-center hidden">
+      <button onclick="downloadPDF()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-full">
+        تحميل بطاقة PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- QR Code Generator -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const animalId = params.get("id");
+
+    async function loadAnimal() {
+      if (!animalId) return showError("⚠️ لم يتم تحديد رقم الحيوان في الرابط.");
+
+      const res = await fetch('/api/animals');
+      const data = await res.json();
+      const animal = data.data.find(a => a.id == animalId);
+      const container = document.getElementById("animalDetails");
+
+      if (!animal) return showError("⚠️ لم يتم العثور على الحيوان.");
+
+      let html = `
+        <p><strong>🐾 اسم الحيوان:</strong> ${animal.name}</p>
+        <p><strong>🍬 نوع الحيوان:</strong> ${animal.type}</p>
+        <p><strong>🧑‍🌾 اسم المالك:</strong> ${animal.owner}</p>
+        <p><strong>📱 رقم الجوال:</strong> ${animal.phone}</p>
+        <p><strong>🆔 هوية المالك:</strong> ${animal.ownerId}</p>
+        <p><strong>📝 ملاحظات الطبيب:</strong> ${animal.notes || "لا يوجد"}</p>
+        <p><strong>🔢 الرقم التسلسلي:</strong> ${animal.id}</p>
+      `;
+
+      if (animal.result && animal.status === "تم الإنجاز") {
+        html += `<p><strong>✅ نتيجة الفحص:</strong> ${animal.result}</p>`;
+        document.getElementById("pdfBtnContainer").classList.remove('hidden');
+      } else {
+        html += `<p class="text-orange-300">⚠️ لم يتم إدخال نتيجة الفحص بعد.</p>`;
+      }
+
+      container.innerHTML = html;
+
+      if (animal.image) {
+        document.getElementById("animalImageContainer").innerHTML =
+          `<img src="${animal.image}" class="w-40 h-40 rounded-full object-cover border-4 border-orange-400">`;
+      }
+
+      // توليد QR
+      const qrUrl = `${location.origin}/animal-info.html?id=${animal.id}`;
+      QRCode.toCanvas(document.getElementById("qrcode"), qrUrl, function (err) {
+        if (err) console.error("خطأ في توليد QR:", err);
+      });
+    }
+
+    function showError(msg) {
+      document.getElementById("animalDetails").innerHTML = `<p class="text-red-500">${msg}</p>`;
+    }
+
+    loadAnimal();
+  </script>
+
+  <!-- توليد PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const card = document.querySelector('.max-w-2xl');
+      const canvas = await html2canvas(card);
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0);
+      pdf.save("بطاقة_الحيوان.pdf");
+    }
+  </script>
+</body>
+</html>

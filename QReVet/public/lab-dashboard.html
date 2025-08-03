@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة فني المختبر - QReVet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h1 class="text-3xl font-bold text-center mb-6 text-orange-600">لوحة فني المختبر</h1>
+
+  <div id="animalList" class="grid grid-cols-1 gap-4 max-w-4xl mx-auto">
+    <!-- البطاقات ستُضاف هنا -->
+  </div>
+
+  <script>
+    async function fetchAnimals() {
+      const res = await fetch('/api/animals');
+      const data = await res.json();
+      const list = document.getElementById("animalList");
+      list.innerHTML = "";
+
+      data.data.forEach(animal => {
+        if (animal.status === "قيد الإجراء") {
+          const card = document.createElement("div");
+          card.className = "bg-white rounded-xl shadow-md p-4 space-y-2 border border-gray-200";
+
+          card.innerHTML = `
+            <p><strong>🐾 اسم الحيوان:</strong> ${animal.name}</p>
+            <p><strong>🐪 نوع الحيوان:</strong> ${animal.type}</p>
+            <p><strong>👤 اسم المالك:</strong> ${animal.owner}</p>
+            <p><strong>🔢 الرقم التسلسلي:</strong> ${animal.id}</p>
+
+            <label class="block text-sm font-medium mt-2">نتيجة الفحص:</label>
+            <input type="text" id="result-${animal.id}" class="w-full border p-2 rounded" placeholder="نتيجة الفحص" />
+
+            <label class="block text-sm font-medium mt-2">ملاحظات:</label>
+            <textarea id="notes-${animal.id}" class="w-full border p-2 rounded" rows="2" placeholder="ملاحظات ..."></textarea>
+
+            <button id="save-btn-${animal.id}" onclick="submitResult(${animal.id})"
+              class="mt-3 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              حفظ النتيجة
+            </button>
+          `;
+
+          list.appendChild(card);
+        }
+      });
+    }
+
+    async function submitResult(id) {
+      const resultInput = document.getElementById(`result-${id}`);
+      const notesInput = document.getElementById(`notes-${id}`);
+      const btn = document.getElementById(`save-btn-${id}`);
+
+      const result = resultInput.value.trim();
+      const notes = notesInput.value.trim();
+
+      if (!result) {
+        alert("⚠️ الرجاء كتابة نتيجة الفحص قبل الحفظ.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "جاري الحفظ...";
+
+      const res = await fetch(`/api/animals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result, notes })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ تم حفظ نتيجة الفحص بنجاح!");
+        fetchAnimals(); // تحديث القائمة بعد الحفظ
+      } else {
+        alert("❌ فشل في حفظ البيانات.");
+        btn.disabled = false;
+        btn.textContent = "حفظ النتيجة";
+      }
+    }
+
+    fetchAnimals();
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة تحكم الطبيب البيطري</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h1 class="text-3xl font-bold text-center mb-6 text-orange-600">لوحة تحكم الطبيب البيطري</h1>
+
+  <!-- نموذج تسجيل الحيوان -->
+  <form id="animalForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-8 bg-white p-4 rounded shadow">
+    <input id="name" placeholder="اسم الحيوان" class="p-2 border rounded bg-blue-50" required />
+    <input id="type" placeholder="نوع الحيوان" class="p-2 border rounded bg-blue-50" required />
+    <input id="owner" placeholder="اسم المالك" class="p-2 border rounded bg-blue-50" required />
+    <input id="ownerId" placeholder="هوية المالك" class="p-2 border rounded bg-blue-50" required />
+    <input id="phone" placeholder="رقم الجوال" class="p-2 border rounded bg-blue-50" required />
+    <input id="image" type="file" class="p-2 border rounded bg-white" accept="image/*" required />
+    <button class="md:col-span-2 bg-orange-600 text-white py-3 rounded hover:bg-orange-700">
+      إنشاء طلب فحص
+    </button>
+  </form>
+
+  <!-- قائمة الحيوانات -->
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-xl font-semibold mb-4">الحيوانات التي تم تسجيلها</h2>
+    <div id="animalList" class="space-y-4"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('animalForm');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const imageFile = document.getElementById('image')?.files[0];
+      if (!imageFile) {
+        alert("🚨 الرجاء اختيار صورة للحيوان.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const imageBase64 = reader.result;
+
+        const data = {
+          name: document.getElementById('name').value,
+          type: document.getElementById('type').value,
+          owner: document.getElementById('owner').value,
+          ownerId: document.getElementById('ownerId').value,
+          phone: document.getElementById('phone').value,
+          image: imageBase64,
+          result: "",
+          notes: ""
+        };
+
+        await fetch('/api/animals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        form.reset();
+        fetchAnimals();
+      };
+
+      reader.readAsDataURL(imageFile); // يحوّل الصورة إلى Base64
+    });
+
+    async function fetchAnimals() {
+      const res = await fetch('/api/animals');
+      const data = await res.json();
+      const list = document.getElementById("animalList");
+      list.innerHTML = "";
+
+      data.data.forEach(animal => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-lg shadow p-4 border border-gray-200";
+
+        card.innerHTML = `
+          <p><strong>🐾 الاسم:</strong> ${animal.name}</p>
+          <p><strong>📞 الجوال:</strong> ${animal.phone}</p>
+          <p><strong>📌 الحالة:</strong> ${animal.status}</p>
+          <p><strong>🧮 الرقم التسلسلي:</strong> ${animal.id}</p>
+        `;
+
+        if (animal.status === "تم الإنجاز") {
+          const button = document.createElement("button");
+          button.className = "mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700";
+          button.textContent = "اطّلع على النتيجة";
+          button.onclick = () => {
+            window.location.href = `/animal-info.html?id=${animal.id}`;
+          };
+          card.appendChild(button);
+        }
+
+        list.appendChild(card);
+      });
+    }
+
+    fetchAnimals();
+  </script>
+</body>
+</html>
